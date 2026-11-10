@@ -30,17 +30,20 @@ import org.json.JSONObject
 data class PokemonEntry(val name: String, val cp: String, val hp: String, val moves: String)
 
 class MainActivity : ComponentActivity() {
+    private var selectedMode = "encounter"
     private val capturePermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK && result.data != null) {
             val service = Intent(this, LiveCaptureService::class.java)
                 .putExtra(LiveCaptureService.EXTRA_RESULT_CODE, result.resultCode)
                 .putExtra(LiveCaptureService.EXTRA_RESULT_DATA, result.data)
+                .putExtra(LiveCaptureService.EXTRA_MODE, selectedMode)
             startForegroundService(service)
             Toast.makeText(this, "Live capture ενεργό · άνοιξε Pokémon GO", Toast.LENGTH_LONG).show()
         }
     }
 
-    private fun startLiveCapture() {
+    private fun startLiveCapture(mode: String) {
+        selectedMode = mode
         if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(this, "Ενεργοποίησε την άδεια εμφάνισης πάνω από άλλες εφαρμογές και πάτησε ξανά", Toast.LENGTH_LONG).show()
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
@@ -81,7 +84,7 @@ class MainActivity : ComponentActivity() {
             )) {
                 CompanionApp(
                     onPickImage = { callback -> onImageText = callback; pickImage.launch("image/*") },
-                    onStartLive = { startLiveCapture() },
+                    onStartLive = { mode -> startLiveCapture(mode) },
                     onStopLive = { stopLiveCapture() }
                 )
             }
@@ -90,7 +93,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun CompanionApp(onPickImage: ((String) -> Unit) -> Unit, onStartLive: () -> Unit, onStopLive: () -> Unit) {
+fun CompanionApp(onPickImage: ((String) -> Unit) -> Unit, onStartLive: (String) -> Unit, onStopLive: () -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("pogo_companion", 0) }
     var tab by remember { mutableStateOf(0) }
@@ -138,10 +141,11 @@ fun CompanionApp(onPickImage: ((String) -> Unit) -> Unit, onStartLive: () -> Uni
                         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Καλώς ήρθες!", style = MaterialTheme.typography.titleLarge)
                             Text("Η πρώτη έκδοση του Companion είναι η βάση για τη συλλογή, την ανάλυση Pokémon και τα PvP εργαλεία.")
-                            Text("Έκδοση 0.2.0 · Live capture beta", color = MaterialTheme.colorScheme.secondary)
+                            Text("Έκδοση 0.3.0 · IV + PvP beta", color = MaterialTheme.colorScheme.secondary)
                         }
                     }
-                    Button(onClick = onStartLive, modifier = Modifier.fillMaxWidth()) { Text("▶ Έναρξη Live Capture") }
+                    Button(onClick = { onStartLive("encounter") }, modifier = Modifier.fillMaxWidth()) { Text("🔎 Encounter IV Mode") }
+                    Button(onClick = { onStartLive("pvp") }, modifier = Modifier.fillMaxWidth()) { Text("⚔ PvP Coach Mode") }
                     OutlinedButton(onClick = onStopLive, modifier = Modifier.fillMaxWidth()) { Text("■ Διακοπή Live Capture") }
                     Text("Το Android θα ζητήσει άδεια καταγραφής οθόνης. Το OCR γίνεται στη συσκευή. Η αναγνώριση PvP στρατηγικής δεν έχει υλοποιηθεί ακόμη.")
                     Text("Τι θα βρεις εδώ", style = MaterialTheme.typography.titleMedium)
@@ -182,7 +186,8 @@ fun CompanionApp(onPickImage: ((String) -> Unit) -> Unit, onStartLive: () -> Uni
                 }
                 2 -> {
                     Text("Live Scanner", style = MaterialTheme.typography.titleLarge)
-                    Button(onClick = onStartLive, modifier = Modifier.fillMaxWidth()) { Text("▶ Live Capture + Overlay") }
+                    Button(onClick = { onStartLive("encounter") }, modifier = Modifier.fillMaxWidth()) { Text("▶ Encounter IV Analyzer") }
+                    Button(onClick = { onStartLive("pvp") }, modifier = Modifier.fillMaxWidth()) { Text("▶ PvP Coach") }
                     OutlinedButton(onClick = onStopLive, modifier = Modifier.fillMaxWidth()) { Text("■ Stop") }
                     Text("Διάλεξε screenshot από το Pokémon GO. Η αναγνώριση κειμένου γίνεται στη συσκευή.")
                     Button(onClick = {
@@ -201,7 +206,7 @@ fun CompanionApp(onPickImage: ((String) -> Unit) -> Unit, onStartLive: () -> Uni
                             Toast.makeText(context, "Το αποτέλεσμα παραμένει αποθηκευμένο στη συσκευή", Toast.LENGTH_SHORT).show()
                         }) { Text("Τοπική αποθήκευση αποτελέσματος") }
                     }
-                    Text("Το live capture αναγνωρίζει ορατό κείμενο περίπου ανά 1,25 δευτερόλεπτα. Δεν αναλύει ακόμη ενέργεια, shields ή τακτική.")
+                    Text("Encounter mode: υπολογισμός πιθανών IV από CP για υποστηριζόμενα είδη. PvP mode: βασικές συμβουλές από ορατά μηνύματα. Για αλλαγή mode πάτα Stop και ξεκίνα ξανά.")
                 }
             }
         }
