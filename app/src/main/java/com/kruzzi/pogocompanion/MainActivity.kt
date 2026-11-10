@@ -2,7 +2,7 @@ package com.kruzzi.pogocompanion
 
 import android.net.Uri
 import android.os.Bundle
-import.widget.Toast
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
