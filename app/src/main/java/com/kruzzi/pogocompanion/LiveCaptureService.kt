@@ -95,9 +95,20 @@ class LiveCaptureService : Service() {
                     image.close()
                     recognizer.process(InputImage.fromBitmap(cropped, 0))
                         .addOnSuccessListener { result ->
-                            val lines = result.text.lines().map { it.trim() }.filter { it.isNotEmpty() }
-                            val summary = if (lines.isEmpty()) "Δεν εντοπίστηκε κείμενο" else lines.take(8).joinToString("\n")
-                            overlay?.text = "PoGO LIVE · OCR\n" + summary
+                            val cleanText = result.text.lines().filterNot { it.contains("PoGO", true) }.joinToString("\n")
+                            if (mode == "pvp") {
+                                overlay?.text = "PoGO PvP COACH\n" + BattleBrain.pvpAdvice(cleanText)
+                            } else {
+                                val analysis = BattleBrain.analyze(cleanText)
+                                overlay?.text = if (analysis == null) {
+                                    "PoGO ENCOUNTER IV\nΠεριμένω Pokémon + CP…"
+                                } else {
+                                    "PoGO IV · ${analysis.species} CP ${analysis.cp}\n" +
+                                    "Πιθανοί IV συνδυασμοί: ${analysis.candidates}\n" +
+                                    (if (analysis.candidates > 0) "IV εύρος: ${analysis.minPercent}–${analysis.maxPercent}%\n" else "") +
+                                    analysis.detail
+                                }
+                            }
                         }
                         .addOnFailureListener { overlay?.text = "PoGO LIVE · Αποτυχία OCR" }
                         .addOnCompleteListener { cropped.recycle(); busy = false }
