@@ -21,6 +21,7 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 class LiveCaptureService : Service() {
     companion object {
         const val ACTION_STOP = "com.kruzzi.pogocompanion.STOP"
+        const val EXTRA_MODE = "captureMode"
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_RESULT_DATA = "resultData"
         private const val CHANNEL = "live_capture"
@@ -32,6 +33,7 @@ class LiveCaptureService : Service() {
     private var windowManager: WindowManager? = null
     private val handler = Handler(Looper.getMainLooper())
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private var mode = "encounter"
     private var busy = false
     private var lastFrameAt = 0L
     private val callback = object : MediaProjection.Callback() {
@@ -48,6 +50,7 @@ class LiveCaptureService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) { stopSelf(); return START_NOT_STICKY }
+        mode = intent?.getStringExtra(EXTRA_MODE) ?: "encounter"
         val notification = Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_menu_view)
             .setContentTitle("PoGO Companion · Live")
